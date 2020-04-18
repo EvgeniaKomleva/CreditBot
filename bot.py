@@ -15,11 +15,10 @@ bot = telebot.TeleBot(config.token)
 user_dict = {}
 
 class User:
-    def __init__(self, city):
-        self.city = city
+    def __init__(self, credit):
+        self.credit = credit
 
-        keys = ['fullname', 'phone', 'driverSeria',
-                'driverNumber', 'driverDate']
+        keys = ['fullname', 'phone', 'Sum','email']
 
         for key in keys:
             self.key = None
@@ -30,7 +29,7 @@ class User:
 def send_welcome(message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     itembtn1 = types.KeyboardButton('/about')
-    itembtn2 = types.KeyboardButton('/registation')
+    itembtn2 = types.KeyboardButton('/reg')
 
     markup.add(itembtn1, itembtn2)
 
@@ -42,7 +41,7 @@ def send_welcome(message):
 # /about
 @bot.message_handler(commands=['about'])
 def send_about(message):
-    bot.send_message(message.chat.id, "В боте вы можете ввести свои данные для оформления завки на потре")
+    bot.send_message(message.chat.id, "В боте вы можете ввести свои данные для оформления завки на потребительский кредит")
 
 
 # /reg
@@ -97,69 +96,61 @@ def process_phone_step(message):
         user.phone = message.text
 
         msg = bot.send_message(chat_id, 'Сумма кредита')
-        bot.register_next_step_handler(msg, process_driverSeria_step)
+        bot.register_next_step_handler(msg, process_creditsum_step)
 
     except Exception as e:
         msg = bot.reply_to(message, 'Вы ввели что то другое. Пожалуйста введите номер телефона.')
         bot.register_next_step_handler(msg, process_phone_step)
 
 
-def process_driverSeria_step(message):
+def process_creditsum_step(message):
     try:
         chat_id = message.chat.id
         user = user_dict[chat_id]
-        user.driverSeria = message.text
+        user.Sum = message.text
 
         msg = bot.send_message(chat_id, 'Введите e-mail')
-        bot.register_next_step_handler(msg, process_driverNumber_step)
+        bot.register_next_step_handler(msg, process_email_step)
 
     except Exception as e:
         bot.reply_to(message, 'ooops!!')
 
 
-def process_driverNumber_step(message):
+def process_email_step(message):
     try:
         chat_id = message.chat.id
         user = user_dict[chat_id]
-        user.driverNumber = message.text
+        user.email = message.text
 
         msg = bot.send_message(chat_id, 'День рождения\nВ формате: День.Месяц.Год')
-        bot.register_next_step_handler(msg, process_carDate_step)
+        bot.register_next_step_handler(msg, process_bd_step)
 
     except Exception as e:
         bot.reply_to(message, 'ooops!!')
 
-def process_carDate_step(message):
+def process_bd_step(message):
     try:
         chat_id = message.chat.id
         user = user_dict[chat_id]
         user.carDate = message.text
 
-        # ваша заявка "Имя пользователя"
         bot.send_message(chat_id, getRegData(user, 'Ваша заявка', message.from_user.first_name), parse_mode="Markdown")
-        # отправить в группу
-        #bot.send_message(config.chat_id, getRegData(user, 'Заявка от бота', bot.get_me().username), parse_mode="Markdown")
-        # print(config.chat_id)
     except Exception as e:
         bot.reply_to(message, 'ooops!!')
 
 
-# формирует вид заявки регистрации
-# нельзя делать перенос строки Template
-# в send_message должно стоять parse_mode="Markdown"
 def getRegData(user, title, name):
     t = Template(
-        '$title *$name* \n Срок кредита: *$userCity* \n ФИО: *$fullname* \n Телефон: *$phone* \n Сумма: *$driverSeria* \n Дата рождения: *$driverNumber* \n ')
+        '$title *$name* \n Срок кредита: *$userCredit* \n ФИО: *$fullname* \n Телефон: *$phone* \n Сумма: *$Sum* \n E-mail: *$email* \n ')
 
     return t.substitute({
         'title': title,
         'name': name,
-        'userCity': user.city,
+        'userCredit': user.credit,
         'fullname': user.fullname,
         'phone': user.phone,
-        'driverSeria': user.driverSeria,
-        'driverNumber': user.driverNumber,
-        #'driverDate': user.driverDate,
+        'Sum': user.Sum,
+        'email': user.email,
     })
 
 
@@ -174,14 +165,8 @@ def send_help(message):
 def send_help_text(message):
     bot.send_message(message.chat.id, 'Напишите текст')
 
-
-# Enable saving next step handlers to file "./.handlers-saves/step.save".
-# Delay=2 means that after any change in next step handlers (e.g. calling register_next_step_handler())
-# saving will hapen after delay 2 seconds.
 bot.enable_save_next_step_handlers(delay=2)
 
-# Load next_step_handlers from save file (default "./.handlers-saves/step.save")
-# WARNING It will work only if enable_save_next_step_handlers was called!
 bot.load_next_step_handlers()
 
 if __name__ == '__main__':
